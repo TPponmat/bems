@@ -18,7 +18,7 @@ import socket
 import pyrebase
 import time
 import requests
-from requests_toolbelt.multipart.encoder import MultipartEncoder
+# from requests_toolbelt.multipart.encoder import MultipartEncoder
 utils.setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '3.2'
@@ -116,14 +116,18 @@ def fibaroing_agent(config_path, **kwargs):
         def onsetup(self, sender, **kwargs):
             # Demonstrate accessing a value from the config file
             _log.info(self.config.get('message', DEFAULT_MESSAGE))
-
-
-            self.iotmodul = importlib.import_module("hive_lib.azure-iot-sdk-python.device.samples.iothub_client_sample")
-
+            # self.iotmodul = importlib.import_module("hive_lib.azure-iot-sdk-python.device.samples.iothub_client_sample")
+            self.status_old = ''
+            self.status_old2 = ''
+            self.status_old3 = ''
+            self.status_old4 = ''
+            self.status_old5 = ''
+            self.status_old6 = ''
 
         @Core.receiver('onstart')
         def onstart(self, sender, **kwargs):
             _log.debug("VERSION IS: {}".format(self.core.version()))
+
 
         @Core.periodic(device_monitor_time)
         def deviceMonitorBehavior(self):
@@ -135,6 +139,7 @@ def fibaroing_agent(config_path, **kwargs):
             # TODO update local postgres
             # self.publish_local_postgres()
 
+
             if (self.fibaro.variables['STATUS'] != self.status_old or
                     self.fibaro.variables['TEMPERATURE'] != self.status_old2 or
                     self.fibaro.variables['ILLUMINANCE'] != self.status_old3 or
@@ -142,8 +147,8 @@ def fibaroing_agent(config_path, **kwargs):
                     self.fibaro.variables['BATTERY'] != self.status_old5 or
                     self.fibaro.variables['HUMIDITY'] != self.status_old6):
                 self.publish_firebase()
-                self.publish_postgres()
-                self.publish_azure_iot_hub(activity_type='devicemonitor', username=agent_id)
+                # self.publish_postgres()
+                # self.publish_azure_iot_hub(activity_type='devicemonitor', username=agent_id)
             else:
                 pass
 
@@ -176,6 +181,8 @@ def fibaroing_agent(config_path, **kwargs):
                     self.fibaro.variables['STATUS'])
 
                 db.child(gateway_id).child('global').child("indoor_temperature").set(self.fibaro.variables['TEMPERATURE'])
+                print "-----------------update firebase--------------"
+
 
             except Exception as er:
                 print er
@@ -207,32 +214,32 @@ def fibaroing_agent(config_path, **kwargs):
             discovered_address = self.iotmodul.iothub_client_sample_run(bytearray(str(x), 'utf8'))
 
         def publish_postgres(self):
+            print "update post"
 
-            postgres_url = settings.POSTGRES['postgres']['url']
-            postgres_Authorization = settings.POSTGRES['postgres']['Authorization']
-            postgres_Authorization = 'ad1eb50802c61eb52d8311cf3d4590c7deacff2e'
-
-            m = MultipartEncoder(
-                fields={
-                    "STATUS": str(self.fibaro.variables['STATUS']),
-                    "device_id": str(self.fibaro.variables['agent_id']),
-                    "device_type": "multisensor",
-                    "TAMPER": str(self.fibaro.variables['TAMPER']),
-                    "TEMPERATURE": str(self.fibaro.variables['TEMPERATURE']),
-                    "BATTERY": str(self.fibaro.variables['BATTERY']),
-                    "HUMIDITY": str(self.fibaro.variables['HUMIDITY']),
-                    "ILLUMINANCE": str(self.fibaro.variables['ILLUMINANCE']),
-                    "last_scanned_time": datetime.now().replace(microsecond=0).isoformat(),
-                }
-            )
-
-            r = requests.put(postgres_url,
-                             data=m,
-                             headers={'Content-Type': m.content_type,
-                                      "Authorization": postgres_Authorization,
-                                      })
-            print r.status_code
-
+            # postgres_url = settings.POSTGRES['postgres']['url']
+            # postgres_Authorization = settings.POSTGRES['postgres']['Authorization']
+            # postgres_Authorization = 'ad1eb50802c61eb52d8311cf3d4590c7deacff2e'
+            #
+            # m = MultipartEncoder(
+            #     fields={
+            #         "STATUS": str(self.fibaro.variables['STATUS']),
+            #         "device_id": str(self.fibaro.variables['agent_id']),
+            #         "device_type": "multisensor",
+            #         "TAMPER": str(self.fibaro.variables['TAMPER']),
+            #         "TEMPERATURE": str(self.fibaro.variables['TEMPERATURE']),
+            #         "BATTERY": str(self.fibaro.variables['BATTERY']),
+            #         "HUMIDITY": str(self.fibaro.variables['HUMIDITY']),
+            #         "ILLUMINANCE": str(self.fibaro.variables['ILLUMINANCE']),
+            #         "last_scanned_time": datetime.now().replace(microsecond=0).isoformat(),
+            #     }
+            # )
+            #
+            # r = requests.put(postgres_url,
+            #                  data=m,
+            #                  headers={'Content-Type': m.content_type,
+            #                           "Authorization": postgres_Authorization,
+            #                           })
+            # print r.status_code
 
         def StatusPublish(self,commsg):
             # TODO this is example how to write an app to control AC
@@ -246,6 +253,7 @@ def fibaroing_agent(config_path, **kwargs):
             self.vip.pubsub.publish(
                 'pubsub', topic,
                 {'Type': 'pub device status to ZMQ'}, message)
+
 
         @PubSub.subscribe('pubsub', topic_device_control)
         def match_device_control(self, peer, sender, bus, topic, headers, message):
